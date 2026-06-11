@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar>
-        <ion-title>Tab 3</ion-title>
+        <ion-title class="ion-text-center ion-absolute-center">Tab 3</ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true">
