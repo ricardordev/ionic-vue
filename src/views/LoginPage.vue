@@ -22,14 +22,14 @@
       <form @submit.prevent="submitForm">
         
         <ion-input
-            label="Login"
+            label="Username"
             label-placement="floating"
             fill="outline"
             type="text"
-            v-model="formData.login"
-            :error-text="errors.login"
-            :class="{ 'ion-invalid': errors.login, 'ion-touched': errors.login }"
-            @ionInput="clearError('login')"
+            v-model="formData.username"
+            :error-text="errors.username"
+            :class="{ 'ion-invalid': errors.username, 'ion-touched': errors.username }"
+            @ionInput="clearError('username')"
             class="ion-margin-bottom"
         ></ion-input>
 
@@ -59,84 +59,80 @@
 import { ref, reactive } from 'vue';
 import { 
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons,
-  IonInput, IonButton, IonSpinner, toastController, IonIcon
+  IonInput, IonButton, IonSpinner, toastController, IonIcon,
+  useIonRouter
 } from '@ionic/vue';
 import { arrowBack } from 'ionicons/icons';
-import { ApiService } from '@/services/api.service';
+import { useAuthStore } from '@/stores/auth.store';
 
-interface LoginPayload {
-  login: string;
-  password: string;
-}
+// Instanciando dependências
+const authStore = useAuthStore();
+const ionRouter = useIonRouter();
 
-interface LoginResponse {
-  id: string;
-  login: string;
-  createdAt: string;
-}
-
-// form state
-const formData = reactive<LoginPayload>({
-  login: '',
-  password: ''
+const formData = reactive({
+  username: 'emilys', // Usuário padrão da DummyJSON para facilitar seu teste
+  password: 'emilyspass'
 });
 
-// errors state
 const errors = reactive({
-  login: '',
+  username: '',
   password: ''
 });
 
 const isSubmitting = ref(false);
 
-// clear error on input/change
 const clearError = (field: keyof typeof errors) => {
   errors[field] = '';
 };
 
-// manual validation
 const validateForm = (): boolean => {
   let isValid = true;
-  
-  if (!formData.login.trim()) {
-    errors.login = 'Login is required.';
+  if (!formData.username.trim()) {
+    errors.username = 'Username is required.';
     isValid = false;
   }
-
   if (!formData.password.trim()) {
     errors.password = 'Password is required.';
     isValid = false;
   }
-
   return isValid;
 };
 
-// Disparo da Ação
 const submitForm = async () => {
   if (!validateForm()) return;
 
   isSubmitting.value = true;
 
   try {
-    // call post method
-    const response = await ApiService.post<LoginResponse, typeof formData>('/login', formData);
-    
-    // show success toast
-    const toast = await toastController.create({
-      message: `Login successful!`,
-      duration: 2500,
-      color: 'success',
-      position: 'bottom'
+    // Delegação! O componente não sabe como a API funciona. Ele confia no Store.
+    const success = await authStore.login({
+      username: formData.username,
+      password: formData.password
     });
-    await toast.present();
+    
+    if (success) {
+      const toast = await toastController.create({
+        message: 'Login successful!',
+        duration: 2000,
+        color: 'success',
+        position: 'top'
+      });
+      await toast.present();
 
-    // clean form
-    formData.login = '';
-    formData.password = '';
+      ionRouter.replace('/'); 
+    } else {
+      const toast = await toastController.create({
+        message: 'Invalid username or password.',
+        duration: 2000,
+        color: 'danger',
+        position: 'top'
+      });
+      await toast.present();
+    }
+    
   } catch (error) {
-    console.error('Error submitting form:', error);
     const toast = await toastController.create({
-      message: 'Error submitting form. Please try again.',
+      message: 'Invalid username or password.',
       duration: 3000,
       color: 'danger',
     });

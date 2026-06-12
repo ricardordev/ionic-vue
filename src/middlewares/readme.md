@@ -13,7 +13,7 @@ const app = createApp(App)
 ******
 
 on src/router/index.ts:
-import { authGuard } from '../middlewares/vue/guards';
+import { authGuard } from '@/middlewares/guards';
 
 add to router to protect:
 

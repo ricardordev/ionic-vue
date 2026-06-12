@@ -81,7 +81,7 @@
 import { ref } from 'vue';
 import { 
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonButtons,
-  IonList, IonItem, IonLabel, IonSkeletonText, onIonViewWillEnter, IonIcon,
+  IonList, IonFooter, IonItem, IonLabel, IonSkeletonText, onIonViewWillEnter, IonIcon,
   IonToggle, IonInfiniteScroll, IonInfiniteScrollContent, IonGrid, IonRow, IonCol, IonText
 } from '@ionic/vue';
 import { arrowBack } from 'ionicons/icons';

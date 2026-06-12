@@ -60,7 +60,7 @@
             <ion-select-option value="Lead">Lead</ion-select-option>
         </ion-select>
 
-        <ion-button type="submit" expand="block" :disabled="isSubmitting">
+        <ion-button type="submit" fill="outline" expand="block" :disabled="isSubmitting">
           <span v-if="!isSubmitting">Submit</span>
           <ion-spinner v-else name="crescent"></ion-spinner>
         </ion-button>

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { Preferences } from '@capacitor/preferences'; // or secure storage
+import { SecureService } from '@/services/secure.service';
+import { ApiService } from '@/services/api.service';
 
 // user interface
 interface User {
@@ -27,15 +28,15 @@ export const useAuthStore = defineStore('auth', () => {
         if (isInitialized.value) return;
 
         try {
-            const { value } = await Preferences.get({ key: 'auth_token' });
-            const savedUser = await Preferences.get({ key: 'auth_user' });
+            const savedToken = await SecureService.getToken();
+            const savedUserStr = await SecureService.getUserData();
 
-            if (value && savedUser.value) {
-                token.value = value;
-                user.value = JSON.parse(savedUser.value);
+            if (savedToken && savedUserStr) {
+                token.value = savedToken;
+                user.value = JSON.parse(savedUserStr);
             }
         } catch (error) {
-            console.error('Failed to read native authentication data:', error);
+            console.error('Failed to read secure data:', error);
             await clearAuthData();
         } finally {
             isInitialized.value = true;
@@ -45,13 +46,38 @@ export const useAuthStore = defineStore('auth', () => {
     /**
      * Login with success
      */
-    async function login(newToken: string, userData: User) {
-        token.value = newToken;
-        user.value = userData;
+    async function login(credentials: { username: string; password: string }) {
+        try {
+            // the responsibility of hitting the API and validating can stay here in the Store
+            const response = await ApiService.post<{
+                accessToken: string;
+                refreshToken: string;
+                id: number;
+                username: string;
+                email: string;
+                firstName: string;
+                lastName: string;
+            }>(import.meta.env.VITE_LOGIN_URL, credentials);
 
-        // save the data in native device
-        await Preferences.set({ key: 'auth_token', value: newToken });
-        await Preferences.set({ key: 'auth_user', value: JSON.stringify(userData) });
+            const loggedUser: User = {
+                id: String(response.id),
+                name: `${response.firstName} ${response.lastName}`,
+                email: response.email,
+            };
+
+            // 1. Update the screen immediately (RAM)
+            token.value = response.accessToken;
+            user.value = loggedUser;
+
+            // 2. Grava no cofre do dispositivo (Disco) em background
+            await SecureService.setToken(response.accessToken);
+            await SecureService.setUserData(JSON.stringify(loggedUser));
+
+            return true;
+        } catch (error) {
+            console.error('Login refused by API:', error);
+            return false;
+        }
     }
 
     /**
@@ -67,8 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
     async function clearAuthData() {
         token.value = null;
         user.value = null;
-        await Preferences.remove({ key: 'auth_token' });
-        await Preferences.remove({ key: 'auth_user' });
+        await SecureService.clearAll();
     }
 
     // public api

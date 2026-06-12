@@ -1,11 +1,12 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
-import { authGuard } from '../middlewares/guards';
+import { authGuard } from '@/middlewares/guards';
 
 import TabsPage from '../views/TabsPage.vue'
 import ListPage from '@/views/ListPage.vue';
 import FormPage from '@/views/FormPage.vue';
 import LoginPage from '@/views/LoginPage.vue';
+import ProfilePage from '@/views/ProfilePage.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -15,6 +16,11 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/login',
     component: LoginPage
+  },
+  {
+    path: '/profile',
+    component: ProfilePage,
+    meta: { requiresAuth: true }
   },
   {
     path: '/list',
@@ -42,10 +48,7 @@ const routes: Array<RouteRecordRaw> = [
       },
       {
         path: 'tab3',
-        component: () => import('@/views/Tab3Page.vue'),
-        meta: {
-          requiresAuth: true
-        }
+        component: () => import('@/views/Tab3Page.vue')
       }
     ]
   }
