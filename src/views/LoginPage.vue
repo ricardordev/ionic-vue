@@ -19,29 +19,29 @@
         </ion-toolbar>
       </ion-header>
 
-      <form @submit.prevent="submitForm">
+      <form @submit="onSubmit">
         
         <ion-input
             label="Username"
             label-placement="floating"
+            placeholder="emilys"
             fill="outline"
             type="text"
-            v-model="formData.username"
+            v-bind="username"
             :error-text="errors.username"
             :class="{ 'ion-invalid': errors.username, 'ion-touched': errors.username }"
-            @ionInput="clearError('username')"
             class="ion-margin-bottom"
         ></ion-input>
 
         <ion-input
             label="Password"
             label-placement="floating"
+            placeholder="emilyspass"
             fill="outline"
             type="password"
-            v-model="formData.password"
+            v-bind="password"
             :error-text="errors.password"
             :class="{ 'ion-invalid': errors.password, 'ion-touched': errors.password }"
-            @ionInput="clearError('password')"
             class="ion-margin-bottom"
         ></ion-input>
 
@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref } from 'vue';
 import { 
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons,
   IonInput, IonButton, IonSpinner, toastController, IonIcon,
@@ -64,50 +64,41 @@ import {
 } from '@ionic/vue';
 import { arrowBack } from 'ionicons/icons';
 import { useAuthStore } from '@/stores/auth.store';
+import { useForm } from 'vee-validate';
+import { toTypedSchema } from '@vee-validate/zod';
+import * as z from 'zod';
 
 // Instanciando dependências
 const authStore = useAuthStore();
 const ionRouter = useIonRouter();
 
-const formData = reactive({
-  username: 'emilys', // Usuário padrão da DummyJSON para facilitar seu teste
-  password: 'emilyspass'
+const validationSchema = toTypedSchema(
+  z.object({
+    username: z
+      .string()
+      .min(2, { message: 'Username is too short.' }),
+    password: z
+      .string()
+      .min(1, { message: 'Password is required.' })
+  })
+);
+
+const { errors, handleSubmit, defineComponentBinds } = useForm({
+  validationSchema,
 });
 
-const errors = reactive({
-  username: '',
-  password: ''
-});
+const username = defineComponentBinds('username');
+const password = defineComponentBinds('password');
 
 const isSubmitting = ref(false);
 
-const clearError = (field: keyof typeof errors) => {
-  errors[field] = '';
-};
 
-const validateForm = (): boolean => {
-  let isValid = true;
-  if (!formData.username.trim()) {
-    errors.username = 'Username is required.';
-    isValid = false;
-  }
-  if (!formData.password.trim()) {
-    errors.password = 'Password is required.';
-    isValid = false;
-  }
-  return isValid;
-};
-
-const submitForm = async () => {
-  if (!validateForm()) return;
-
+const onSubmit = handleSubmit(async (values) => {
   isSubmitting.value = true;
-
   try {
-    // Delegação! O componente não sabe como a API funciona. Ele confia no Store.
     const success = await authStore.login({
-      username: formData.username,
-      password: formData.password
+      username: values.username,
+      password: values.password
     });
     
     if (success) {
@@ -140,5 +131,5 @@ const submitForm = async () => {
   } finally {
     isSubmitting.value = false;
   }
-};
+});
 </script>

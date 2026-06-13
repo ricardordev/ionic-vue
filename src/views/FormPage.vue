@@ -19,17 +19,16 @@
         </ion-toolbar>
       </ion-header>
 
-      <form @submit.prevent="submitForm">
+      <form @submit="onSubmit">
         
         <ion-input
             label="Name"
             label-placement="floating"
             fill="outline"
             type="text"
-            v-model="formData.name"
+            v-bind="name"
             :error-text="errors.name"
             :class="{ 'ion-invalid': errors.name, 'ion-touched': errors.name }"
-            @ionInput="clearError('name')"
             class="ion-margin-bottom"
         ></ion-input>
 
@@ -39,10 +38,9 @@
             fill="outline"
             type="email"
             inputmode="email"
-            v-model="formData.email"
+            v-bind="email"
             :error-text="errors.email"
             :class="{ 'ion-invalid': errors.email, 'ion-touched': errors.email }"
-            @ionInput="clearError('email')"
             class="ion-margin-bottom"
         ></ion-input>
 
@@ -50,10 +48,9 @@
             label="Type"
             label-placement="floating"
             fill="outline"
-            v-model="formData.type"
+            v-bind="type"
             :error-text="errors.type"
             :class="{ 'ion-invalid': errors.type, 'ion-touched': errors.type }"
-            @ionChange="clearError('type')"
             class="ion-margin-bottom" 
         >
             <ion-select-option value="Contact">Contact</ion-select-option>
@@ -71,18 +68,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref } from 'vue';
 import { 
-  IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonBackButton, IonButtons,
+  IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons,
   IonInput, IonSelect, IonSelectOption, IonButton, IonSpinner, toastController, IonIcon
 } from '@ionic/vue';
 import { arrowBack } from 'ionicons/icons';
 import { ApiService } from '@/services/api.service';
+import { useForm } from 'vee-validate';
+import { toTypedSchema } from '@vee-validate/zod';
+import * as z from 'zod';
+
+const validationSchema = toTypedSchema(
+  z.object({
+    name: z
+      .string()
+      .min(2, { message: 'Name is too short.' }),
+    email: z
+      .string()
+      .min(1, { message: 'Email is required.' })
+      .email({ message: 'Must be a valid email address.' }),
+    type: z
+      .string()
+      .min(1, { message: 'Type is required.' }),
+  })
+);
+
+const { errors, handleSubmit, defineComponentBinds } = useForm({
+  validationSchema,
+});
+
+const name = defineComponentBinds('name');
+const email = defineComponentBinds('email');
+const type = defineComponentBinds('type');
 
 interface ContactPayload {
   name: string;
   email: string;
-  type: 'contact' | 'lead' | '';
+  type: string;
 }
 
 interface ContactResponse {
@@ -93,65 +116,12 @@ interface ContactResponse {
   createdAt: string;
 }
 
-// form state
-const formData = reactive<ContactPayload>({
-  name: '',
-  email: '',
-  type: ''
-});
-
-// errors state
-const errors = reactive({
-  name: '',
-  email: '',
-  type: ''
-});
-
 const isSubmitting = ref(false);
 
-// clear error on input/change
-const clearError = (field: keyof typeof errors) => {
-  errors[field] = '';
-};
-
-// manual validation
-const validateForm = (): boolean => {
-  let isValid = true;
-  
-  if (!formData.name.trim()) {
-    errors.name = 'Name is required.';
-    isValid = false;
-  }
-  
-  // regular regex to validate e-mail
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!formData.email.trim()) {
-    errors.email = 'E-mail is required.';
-    isValid = false;
-  } else if (!emailRegex.test(formData.email)) {
-    errors.email = 'Please enter a valid email address.';
-    isValid = false;
-  }
-
-  if (!formData.type) {
-    errors.type = 'Type is required.';
-    isValid = false;
-  }
-
-  return isValid;
-};
-
-// Disparo da Ação
-const submitForm = async () => {
-  if (!validateForm()) return;
-
+const onSubmit = handleSubmit(async (values) => {
   isSubmitting.value = true;
-
   try {
-    // call post method
-    const response = await ApiService.post<ContactResponse, typeof formData>('/contacts', formData);
-    
-    // show success toast
+    const response = await ApiService.post<ContactResponse, ContactPayload>('/contacts', values);
     const toast = await toastController.create({
       message: `Contact submitted successfully!`,
       duration: 2500,
@@ -159,11 +129,6 @@ const submitForm = async () => {
       position: 'bottom'
     });
     await toast.present();
-
-    // clean form
-    formData.name = '';
-    formData.email = '';
-    formData.type = '';
   } catch (error) {
     console.error('Error submitting form:', error);
     const toast = await toastController.create({
@@ -175,5 +140,5 @@ const submitForm = async () => {
   } finally {
     isSubmitting.value = false;
   }
-};
+});
 </script>
